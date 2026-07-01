@@ -14,6 +14,14 @@ Expected variables (obtained from challenge webpage):
 
 Do not commit or paste credential values into documentation, logs, or submissions.
 
+## Related documents
+
+- **CHALLENGE.md** - extracted text from the challenge page for fast processing/indexing
+- **PLAN.md** - current plan to solve/approach the challenge
+- **FINDINGS.md** - append-only ledger of established facts, candidate deviations, and open rules
+- **plans/DATA_LOADING.md** - implementation spec for authenticated API extraction and immutable raw persistence
+- **plans/STORAGE.md** - implementation spec for the DuckDB store (raw → normalized → reconciliation layers)
+
 ## Python Setup
 
 Use Python 3.12 with a local virtual environment:
@@ -27,11 +35,13 @@ python -m pip install -r requirements.txt
 
 Core project technology:
 
-- DuckDB for hostless local analytical storage.
-- Polars for fast in-memory/lazy tabular transformations where useful.
-- pandas and pyarrow for tabular import/export.
+- DuckDB for hostless local analytical storage and all tabular transformations; a single
+  engine keeps lineage auditable and lets the reconstruction SQL double as the DSF spec.
 - requests and python-dotenv for authenticated API extraction.
 - pytest for validation tests.
+- Pydantic (optional) for ingest-boundary response validation.
+
+See `plans/DATA_LOADING.md` and `plans/STORAGE.md` for the extraction and storage designs.
 
 ## Design Principles
 
@@ -39,7 +49,7 @@ Optimize for correctness, auditability, and speed; avoid platform-level abstract
 
 - Components: separate API extraction, raw storage, normalization, reconciliation, validation, and reporting.
 - Storage: preserve immutable raw API extracts; persist normalized/derived analytical tables in DuckDB.
-- Compute: use Polars for fast typed transformations where useful; avoid obscuring lineage by mixing engines unnecessarily.
+- Compute: use DuckDB SQL as the single transform engine; avoid obscuring lineage by mixing engines unnecessarily.
 - Types: use Pydantic/typed schemas for config, endpoint params, response validation, and domain records.
 - Validation: fail on missing credentials, incomplete pagination, schema drift, bad enums, duplicate keys, unit/date errors, or unexpected nulls.
 - Logic: keep formulas explicit and testable, especially unit conversion, hourly aggregation, joins, contract amendments, allocation denominators, and rounding.

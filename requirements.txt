@@ -1,10 +1,19 @@
-duckdb>=1.0.0
-polars>=1.0.0
-pandas>=2.2.0
-pyarrow>=15.0.0
-requests>=2.32.0
-python-dotenv>=1.0.0
-tqdm>=4.66.0
-pydantic>=2.7.0
-pytest>=8.2.0
-ipykernel>=6.29.0
+# Single analytical engine keeps data lineage auditable (see Design Principles in
+# README.md: "avoid obscuring lineage by mixing engines unnecessarily"). DuckDB SQL
+# is the one transform engine; its queries double as the DSF BUSINESS LOGIC spec.
+
+# --- Core (required on the reproducible path) ---
+duckdb>=1.1.0          # ingestion, typed storage, all joins/aggregation, export
+requests>=2.32.0       # authenticated API extraction
+python-dotenv>=1.0.0   # load QUADRA_API_KEY / QUADRA_ACCESS_CODE from .env
+pytest>=8.2.0          # reconciliation-identity and pagination-completeness tests
+
+# --- Optional ---
+pydantic>=2.7.0        # ingest-boundary response validation: schema/enum drift, nulls
+ipykernel>=6.29.0      # exploratory one-asset tracing in notebooks (never on the
+                       # reproducible path; final outputs rebuild from scripts/SQL)
+
+# Intentionally NOT included: polars, pandas, pyarrow, tqdm.
+# DuckDB covers all tabular transforms at this scale (feed-in is ~2.5M rows, trivial
+# for DuckDB); adding a second/third DataFrame engine would duplicate logic and blur
+# lineage. The loader logs progress directly, so tqdm is unnecessary.

@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# QUADRA challenge: raw API extracts + DuckDB warehouse are reproducible artifacts
+# (and hold the full synthetic dataset). Rebuildable from scripts; never commit.
+data/
+*.duckdb
+*.duckdb.wal
+
+# JetBrains IDE
+.idea/
