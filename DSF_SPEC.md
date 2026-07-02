@@ -14,6 +14,9 @@ reconstructed columns; ~12/847 land on the 0.01 last-digit boundary, none above)
 `availability_pct` (a data-quality ratio, 847/847 exact). So the three deviations are provably
 rule-level, not artifacts. Values written as "for 2025-01: X" are the live-probed constants for
 the reporting month; the process reads them from the API each run and must not hard-code them.
+A one-chart visual summary (pipeline + the three deviations) is at `docs/solution_chart.svg`,
+rendered by `scripts/render_chart.py` with every figure re-queried live and asserted against
+this spec before drawing.
 
 ---
 
