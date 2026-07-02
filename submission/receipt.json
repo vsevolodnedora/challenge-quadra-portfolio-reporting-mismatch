@@ -1,0 +1,11 @@
+{
+  "submission_id": "3533e35c-e633-4348-877e-3c73f2476430",
+  "created_at": "2026-07-02T11:50:59.663Z",
+  "status": "received",
+  "submissions_used": 1,
+  "submissions_remaining": 2,
+  "deviations_claimed": ["1", "2", "3"],
+  "tool_used": "Claude Code",
+  "linkedin_url": "https://www.linkedin.com/in/vsevolodnedora/",
+  "payload_files": ["submission/spec_text.md", "submission/agent_output.md"]
+}
