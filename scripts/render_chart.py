@@ -160,10 +160,10 @@ def box(ax, x, y, w, h, text, *, fs=9.4, fc=FILL, ec=EDGE, tc=SLATE, bold=False,
 
 
 def pin(ax, fig, x, y, label):
-    w = 0.018
+    w = 0.021
     h = w * fig.get_figwidth() / fig.get_figheight()
     ax.add_patch(Ellipse((x, y), w, h, fc=RED, ec="white", lw=1.2, zorder=6))
-    ax.text(x, y, label, ha="center", va="center", fontsize=9.0, color="white",
+    ax.text(x, y, label, ha="center", va="center", fontsize=10.5, color="white",
             fontweight="bold", zorder=7)
 
 
@@ -174,10 +174,10 @@ def harrow(ax, x0, x1, y, *, color=EDGE, lw=1.2):
 
 
 def panel_header(fig, x, y, tag, title, sub):
-    fig.text(x, y, tag, fontsize=11.5, color="white", fontweight="bold",
+    fig.text(x, y, tag, fontsize=13.5, color="white", fontweight="bold",
              bbox=dict(boxstyle="round,pad=0.28", fc=RED, ec="none"))
-    fig.text(x + 0.033, y, title, fontsize=12.2, color=SLATE, fontweight="bold", va="center_baseline")
-    fig.text(x, y - 0.052, sub, fontsize=9.8, color=SLATE_SOFT, linespacing=1.5, va="center")
+    fig.text(x + 0.038, y, title, fontsize=14.5, color=SLATE, fontweight="bold", va="center_baseline")
+    fig.text(x, y - 0.055, sub, fontsize=11.8, color=SLATE_SOFT, linespacing=1.5, va="center")
 
 
 def style_axes(ax):
@@ -185,7 +185,7 @@ def style_axes(ax):
         ax.spines[s].set_visible(False)
     for s in ("left", "bottom"):
         ax.spines[s].set_color(EDGE)
-    ax.tick_params(colors=SLATE_SOFT, labelsize=9.2)
+    ax.tick_params(colors=SLATE_SOFT, labelsize=11.2)
 
 
 # ------------------------------------------------------------------------------------ chart
@@ -197,22 +197,22 @@ def render(v: dict, out_dir: pathlib.Path) -> list[pathlib.Path]:
     ax.axis("off")
 
     # -------- header
-    fig.text(0.035, 0.960, "NEBELGARD Jan-2025 Deckungsbeitrag — reconstruction and the three deviations",
-             fontsize=20, color=SLATE, fontweight="bold")
-    fig.text(0.035, 0.932,
-             "QUADRA DSF challenge · published report reproduced to the cent from nine raw API sources · "
-             "exactly three rule-level deviations, each cross-referencing ≥ 2 sources",
-             fontsize=11.5, color=SLATE_SOFT)
+    fig.text(0.035, 0.958, "NEBELGARD Jan-2025 Deckungsbeitrag — rebuilt to the cent, 3 deviations",
+             fontsize=24.5, color=SLATE, fontweight="bold")
+    fig.text(0.035, 0.928,
+             "QUADRA DSF challenge · report reproduced from nine raw API sources · "
+             "three rule-level deviations, each cross-referencing ≥ 2 sources",
+             fontsize=13.5, color=SLATE_SOFT)
 
     # -------- top band: pipeline
     ax.add_patch(FancyBboxPatch((0.03, 0.555), 0.94, 0.355,
                                 boxstyle="round,pad=0.004,rounding_size=0.008",
                                 fc=BAND, ec="#E3E9EE", lw=0.8, mutation_aspect=0.62, zorder=0))
-    fig.text(0.045, 0.878, "RAW SOURCES — 9 endpoints, rows = meta.total_records ✓",
-             fontsize=9.2, color=SLATE_SOFT, fontweight="bold")
+    fig.text(0.045, 0.878, "RAW SOURCES — 9 endpoints, rows ✓",
+             fontsize=10.8, color=SLATE_SOFT, fontweight="bold")
     fig.text(0.42, 0.878, "AGGREGATION CHAIN  (reverse-engineered, per asset)",
-             fontsize=9.2, color=SLATE_SOFT, fontweight="bold")
-    fig.text(0.845, 0.878, "PUBLISHED REPORT", fontsize=9.2, color=SLATE_SOFT, fontweight="bold")
+             fontsize=10.8, color=SLATE_SOFT, fontweight="bold")
+    fig.text(0.845, 0.878, "PUBLISHED REPORT", fontsize=10.8, color=SLATE_SOFT, fontweight="bold")
 
     endpoints = [
         ("/data/feedin", f"{v['rows_feedin']:,} qh rows (kWh)"),
@@ -229,29 +229,29 @@ def render(v: dict, out_dir: pathlib.Path) -> list[pathlib.Path]:
     for i, (name, sub) in enumerate(endpoints):
         y = ey0 - i * (eh + egap)
         box(ax, 0.045, y, 0.21, eh, "", fc="white")
-        ax.text(0.052, y + eh / 2, name, ha="left", va="center", fontsize=8.8,
+        ax.text(0.052, y + eh / 2, name, ha="left", va="center", fontsize=9.6,
                 color=SLATE, fontweight="bold", family="monospace")
-        ax.text(0.249, y + eh / 2, sub, ha="right", va="center", fontsize=8.0, color=SLATE_SOFT)
+        ax.text(0.249, y + eh / 2, sub, ha="right", va="center", fontsize=8.8, color=SLATE_SOFT)
 
     steps = [
-        ("1  Feed-in", "kWh→MWh · excl. raw\ntrunc. at contract end"),
-        ("2  Settlement", "sched×DA\n+ (act−sched)×ID"),
-        ("3  EEG premium", "MWh × rate\n(8.40 / 6.20)"),
-        ("4  Gross revenue", "settlement\n+ premium"),
-        ("5  Mgmt fee", "fixed / rev-share\namendments!"),
-        ("6  Alloc. costs", "4 pools ÷\nactive assets"),
-        ("7  EEG corr + DB", "corr alloc ·\nDB identity"),
+        ("1 Feed-in", "kWh→MWh · no raw\ncut at contract end"),
+        ("2 Settlement", "sched×DA\n+ (act−sched)×ID"),
+        ("3 EEG premium", "MWh × rate\n(8.40 / 6.20)"),
+        ("4 Gross rev.", "settlement\n+ premium"),
+        ("5 Mgmt fee", "fixed / rev-share\namendments!"),
+        ("6 Alloc. costs", "4 pools ÷\nactive assets"),
+        ("7 Corr + DB", "corr alloc ·\nDB identity"),
     ]
     sx0, sw, sgap, sy, sh = 0.278, 0.0705, 0.0075, 0.715, 0.088
     centers = []
     for i, (t1, t2) in enumerate(steps):
         x = sx0 + i * (sw + sgap)
         centers.append(x + sw / 2)
-        box(ax, x, sy, sw, sh, "", fc="white", ec=SLATE, lw=1.1)
+        box(ax, x, sy, sw, sh, "", fc="white", ec=SLATE, lw=1.4)
         ax.text(x + sw / 2, sy + sh - 0.018, t1, ha="center", va="center",
-                fontsize=9.3, color=SLATE, fontweight="bold")
+                fontsize=10.6, color=SLATE, fontweight="bold")
         ax.text(x + sw / 2, sy + 0.028, t2, ha="center", va="center",
-                fontsize=7.9, color=SLATE_SOFT, linespacing=1.3)
+                fontsize=8.6, color=SLATE_SOFT, linespacing=1.3)
         if i:
             harrow(ax, x - sgap + 0.001, x - 0.001, sy + sh / 2, color=SLATE_SOFT)
 
@@ -260,98 +260,97 @@ def render(v: dict, out_dir: pathlib.Path) -> list[pathlib.Path]:
     harrow(ax, sx0 + 7 * sw + 6 * sgap + 0.004, 0.845, sy + sh / 2, color=SLATE_SOFT, lw=1.4)
 
     # deviation pins on the breaking steps (5 -> D2, 6 -> D3, 7 -> D1)
-    for idx, (tag, note) in {4: ("D2", "new model applied\nto whole month"),
-                             5: ("D3", "÷ 847 — inactive\ncounted as active"),
-                             6: ("D1", "spread over all wind,\nnot north-only")}.items():
-        pin(ax, fig, centers[idx], sy - 0.022, tag)
-        ax.text(centers[idx], sy - 0.055, note, ha="center", va="center",
-                fontsize=8.0, color=RED, linespacing=1.25, fontweight="bold")
+    for idx, (tag, note) in {4: ("D2", "new model on\nwhole month"),
+                             5: ("D3", "÷847, inactive\nas active"),
+                             6: ("D1", "all wind, not\nnorth-only")}.items():
+        pin(ax, fig, centers[idx], sy - 0.023, tag)
+        ax.text(centers[idx], sy - 0.058, note, ha="center", va="center",
+                fontsize=9.0, color=RED, linespacing=1.25, fontweight="bold")
 
     # report stack
     rx, rw = 0.850, 0.118
-    box(ax, rx, 0.783, rw, 0.045, "847 asset rows", fs=9.2, fc="white")
-    box(ax, rx, 0.730, rw, 0.045, "4 region rows", fs=9.2, fc="white")
+    box(ax, rx, 0.783, rw, 0.045, "847 asset rows", fs=10.2, fc="white")
+    box(ax, rx, 0.730, rw, 0.045, "4 region rows", fs=10.2, fc="white")
     box(ax, rx, 0.640, rw, 0.082, f"portfolio\nDB {eur(v['pub_db'])} €\nactive count 847 ✗",
-        fs=8.8, fc="white", ec=SLATE, lw=1.1)
+        fs=9.6, fc="white", ec=SLATE, lw=1.4)
 
     # fidelity gate strip
     fig.text(0.045, 0.575,
-             "✓ FIDELITY GATE   the clean rebuild reproduces every published column for all 847 assets "
-             f"(max |Δ Deckungsbeitrag| = {v['max_db_delta']:.2f} €) — the three deviations are rule-level, "
-             "not parsing or rounding artifacts",
-             fontsize=9.8, color=OKG, fontweight="bold",
+             "✓ FIDELITY GATE   clean rebuild matches every published column, all 847 assets "
+             f"(max |Δ DB| = {v['max_db_delta']:.2f} €) — deviations are rule-level, not artifacts",
+             fontsize=11.5, color=OKG, fontweight="bold",
              bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="#D8E5DD", lw=0.8))
 
     # -------- bottom band: three panels
-    panel_header(fig, 0.055, 0.475, "D1", "EEG correction: all wind  →  north wind only",
+    panel_header(fig, 0.055, 0.475, "D1", "EEG correction → north wind only",
                  f"{eur(v['d1_shift'])} € shifted off north · net 0 € at portfolio\n"
                  "note: “ausschließlich Windanlagen Region Nord”")
-    p1 = fig.add_axes([0.055, 0.095, 0.25, 0.315])
+    p1 = fig.add_axes([0.072, 0.095, 0.233, 0.30])
     regions = ["north", "east", "south", "west"]
     pub1 = [v["d1_regions"][r] for r in regions]
     cor1 = [-18_400.0 if r == "north" else 0.0 for r in regions]
     xs = range(len(regions))
-    p1.bar([x - 0.19 for x in xs], pub1, width=0.36, color=PUB, label="published (wrong)")
-    p1.bar([x + 0.19 for x in xs], cor1, width=0.36, color=COR, label="correct")
+    p1.bar([x - 0.2 for x in xs], pub1, width=0.38, color=PUB, label="published (wrong)")
+    p1.bar([x + 0.2 for x in xs], cor1, width=0.38, color=COR, label="correct")
     for x, val in zip(xs, pub1):
-        p1.text(x - 0.19, val - 600, eur(val, 0), ha="center", va="top", fontsize=8.4, color=SLATE_SOFT)
-    p1.text(0 + 0.19, cor1[0] - 600, eur(cor1[0], 0), ha="center", va="top", fontsize=8.6,
+        p1.text(x - 0.2, val - 700, eur(val, 0), ha="center", va="top", fontsize=10.2, color=SLATE_SOFT)
+    p1.text(0 + 0.2, cor1[0] - 700, eur(cor1[0], 0), ha="center", va="top", fontsize=11.0,
             color=COR, fontweight="bold")
     p1.set_xticks(list(xs), [r + " wind" for r in regions])
-    p1.set_ylim(-21_500, 800)
+    p1.set_ylim(-22_300, 800)
     p1.axhline(0, color=EDGE, lw=0.8)
-    p1.set_ylabel("EEG correction (€)", fontsize=9.6, color=SLATE_SOFT)
-    p1.legend(fontsize=9.0, frameon=False, loc="lower right")
+    p1.set_ylabel("EEG correction (€)", fontsize=11.8, color=SLATE_SOFT)
+    p1.legend(fontsize=11.0, frameon=False, loc="lower right")
     style_axes(p1)
 
-    panel_header(fig, 0.395, 0.475, "D2", "Amended fee: whole month  →  split at Jan 15",
+    panel_header(fig, 0.395, 0.475, "D2", "Amended fee → split at Jan 15",
                  f"portfolio DB understated {eur(v['d2_net'])} €\n"
                  f"WND-0089 +{eur(v['d2_wnd'])} over · SOL-0214 −{eur(abs(v['d2_sol']))} under")
-    p2 = fig.add_axes([0.395, 0.095, 0.25, 0.315])
+    p2 = fig.add_axes([0.400, 0.095, 0.245, 0.30])
     base = 2_310_000
-    p2.bar([0], [v["pub_db"] - base], bottom=base, width=0.55, color=PUB)
-    p2.bar([1], [v["d2_net"]], bottom=v["pub_db"], width=0.55, color=COR, alpha=0.55)
-    p2.bar([2], [v["corr_db"] - base], bottom=base, width=0.55, color=COR)
-    p2.plot([-0.28, 1.28], [v["pub_db"]] * 2, color=SLATE_SOFT, lw=0.7, ls=":")
-    p2.plot([0.72, 2.28], [v["corr_db"]] * 2, color=SLATE_SOFT, lw=0.7, ls=":")
-    p2.text(0, v["pub_db"] + 350, eur(v["pub_db"]), ha="center", fontsize=9.0, color=SLATE)
-    p2.text(1, v["corr_db"] + 350, f"+{eur(v['d2_net'])}", ha="center", fontsize=9.0,
+    p2.bar([0], [v["pub_db"] - base], bottom=base, width=0.58, color=PUB)
+    p2.bar([1], [v["d2_net"]], bottom=v["pub_db"], width=0.58, color=COR, alpha=0.55)
+    p2.bar([2], [v["corr_db"] - base], bottom=base, width=0.58, color=COR)
+    p2.plot([-0.29, 1.29], [v["pub_db"]] * 2, color=SLATE_SOFT, lw=0.8, ls=":")
+    p2.plot([0.71, 2.29], [v["corr_db"]] * 2, color=SLATE_SOFT, lw=0.8, ls=":")
+    p2.text(0, v["pub_db"] + 400, eur(v["pub_db"]), ha="center", fontsize=10.8, color=SLATE)
+    p2.text(1, v["corr_db"] + 400, f"+{eur(v['d2_net'])}", ha="center", fontsize=10.8,
             color=COR, fontweight="bold")
-    p2.text(2, v["corr_db"] + 350, eur(v["corr_db"]), ha="center", fontsize=9.0,
+    p2.text(2, v["corr_db"] + 400, eur(v["corr_db"]), ha="center", fontsize=10.8,
             color=COR, fontweight="bold")
     p2.set_xticks([0, 1, 2], ["published DB", "fee over-charge\nreversed", "correct DB"])
     p2.set_ylim(base, 2_326_500)
-    p2.set_ylabel("portfolio Deckungsbeitrag (€)", fontsize=9.6, color=SLATE_SOFT)
+    p2.set_ylabel("portfolio DB (€)", fontsize=11.8, color=SLATE_SOFT)
     p2.yaxis.set_major_formatter(lambda x, _: f"{x / 1e6:.3f} M")
     style_axes(p2)
 
-    panel_header(fig, 0.72, 0.475, "D3", "Inactive counted as active: 847  →  835",
+    panel_header(fig, 0.72, 0.475, "D3", "Inactive as active: 847 → 835",
                  f"{eur(v['d3_shift'])} € pooled cost moves to the {v['active']} active\n"
                  f"grid fees ({eur(v['d3_grid'])} €, per-asset) correctly stay")
-    p3 = fig.add_axes([0.72, 0.095, 0.245, 0.315])
+    p3 = fig.add_axes([0.72, 0.095, 0.245, 0.30])
     cats = list(v["d3_cats"])
     pub3 = [v["d3_cats"][c] for c in cats]
     cor3 = [0.0, 0.0, 0.0, v["d3_grid"]]
     xs3 = range(len(cats))
-    p3.bar([x - 0.19 for x in xs3], pub3, width=0.36, color=PUB, label="on 12 inactive (published)")
-    p3.bar([x + 0.19 for x in xs3], cor3, width=0.36, color=COR, label="on 12 inactive (correct)")
+    p3.bar([x - 0.2 for x in xs3], pub3, width=0.38, color=PUB, label="on 12 inactive (published)")
+    p3.bar([x + 0.2 for x in xs3], cor3, width=0.38, color=COR, label="on 12 inactive (correct)")
     for x, val in zip(xs3, pub3):
-        p3.text(x - 0.19, val + 22, eur(val, 0), ha="center", fontsize=8.4, color=SLATE_SOFT)
-    p3.text(3 + 0.19, cor3[3] + 22, eur(cor3[3], 0), ha="center", fontsize=8.6,
+        p3.text(x - 0.2, val + 25, eur(val, 0), ha="center", fontsize=10.2, color=SLATE_SOFT)
+    p3.text(3 + 0.2, cor3[3] + 25, eur(cor3[3], 0), ha="center", fontsize=11.0,
             color=COR, fontweight="bold")
     p3.set_xticks(list(xs3), cats)
-    p3.tick_params(axis="x", labelsize=8.6)
-    p3.set_ylim(0, 1_150)
-    p3.set_ylabel("cost carried by inactive (€)", fontsize=9.6, color=SLATE_SOFT)
-    p3.legend(fontsize=8.8, frameon=False, loc="upper left")
+    p3.tick_params(axis="x", labelsize=10.2)
+    p3.set_ylim(0, 1_250)
+    p3.set_ylabel("cost on inactive (€)", fontsize=11.8, color=SLATE_SOFT)
+    p3.legend(fontsize=10.5, frameon=False, loc="upper left")
     style_axes(p3)
 
     # -------- footer
-    fig.text(0.035, 0.022,
-             "All figures computed live from data/warehouse.duckdb (deterministic rebuild from immutable raw "
-             "API extracts) and asserted against DSF_SPEC.md before rendering · scripts/render_chart.py · "
+    fig.text(0.035, 0.020,
+             "All figures computed live from the DuckDB warehouse (deterministic rebuild from immutable raw "
+             "API extracts) and asserted against DSF_SPEC.md before rendering · "
              "synthetic challenge data (QUADRA / NEBELGARD, fictional)",
-             fontsize=8.6, color=SLATE_SOFT)
+             fontsize=9.2, color=SLATE_SOFT)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = []
