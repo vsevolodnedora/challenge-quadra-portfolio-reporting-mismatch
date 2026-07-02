@@ -33,10 +33,16 @@ are final:
 2. finance's cost allocation for `M` is finalized (`/data/costs` + `/data/costs/metadata` for `M`),
 3. feed-in for the full month is delivered (`/data/feedin` returns the complete quarter-hour grid).
 
-Schedule: **08:00 Europe/Berlin on the 3rd business day of month `M+1`**. For this deliverable,
-`M = 2025-01`, `date_from = 2025-01-01`, `date_to = 2025-01-31`. API `generated_at` timestamps are
-UTC; the trigger time is Europe/Berlin. Do not run for a partial month, and do not re-run silently
-if a feed is later restated — a restatement is a new, versioned run.
+Schedule: **09:00 Europe/Berlin on the 1st business day of month `M+1`, gated on the three
+conditions above** (if any feed is not final, hold and re-check hourly; escalate to a human at
+EOD). *Assumption — the source data does not pin the run time.* The only observable hint is the
+challenge documentation's example `generated_at = 2025-02-03T08:14:22Z` (Monday 2025-02-03
+09:14 Europe/Berlin — the 1st business day after January closed, consistent with the upstream
+feeds being final: cost allocation dated 2025-01-31, ÜNB-Mitteilung dated 2025-01-28); the
+schedule is anchored to that hint and the conditions dominate in any conflict. For this
+deliverable, `M = 2025-01`, `date_from = 2025-01-01`, `date_to = 2025-01-31`. API `generated_at`
+timestamps are UTC; the trigger time is Europe/Berlin. Do not run for a partial month, and do not
+re-run silently if a feed is later restated — a restatement is a new, versioned run.
 
 ## 3. DATA INPUTS
 
