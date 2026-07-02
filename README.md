@@ -10,7 +10,7 @@ Link to the challenge: https://poc16264.quadra-energy.com/challenge
 **What it shows.** The published Jan-2025 Deckungsbeitrag (contribution-margin) report for the
 847-asset portfolio was reverse-engineered from the nine raw API endpoints (top band: sources →
 seven aggregation steps → report). A clean rebuild reproduces **every published column for all
-847 assets to the cent** (fidelity gate), which proves the aggregation rules are fully pinned —
+847 assets to the cent**, which proves the aggregation rules are fully pinned —
 so the exactly-three deviations are rule-level choices, not parsing or rounding artifacts. Each
 deviation (red pin at the step where the rule breaks; bottom panels: published grey vs. correct
 teal) is a point where the report's rule contradicts a **second** data source:
