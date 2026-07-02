@@ -22,6 +22,8 @@ Do not commit or paste credential values into documentation, logs, or submission
 - **DSF_SPEC.md** - the deliverable: the 7-field DSF spec + the three identified deviations
 - **plans/DATA_LOADING.md** - implementation spec for authenticated API extraction and immutable raw persistence
 - **plans/STORAGE.md** - implementation spec for the DuckDB store (raw → normalized → reconciliation layers)
+- **docs/solution_chart.svg** - one-chart summary (pipeline + the three deviations), rendered
+  from the warehouse by `scripts/render_chart.py` with every figure asserted against `DSF_SPEC.md`
 
 ## Python Setup
 

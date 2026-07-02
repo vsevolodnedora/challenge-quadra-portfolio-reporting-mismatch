@@ -12,6 +12,9 @@ pytest>=8.2.0          # reconciliation-identity and pagination-completeness tes
 pydantic>=2.7.0        # ingest-boundary response validation: schema/enum drift, nulls
 ipykernel>=6.29.0      # exploratory one-asset tracing in notebooks (never on the
                        # reproducible path; final outputs rebuild from scripts/SQL)
+matplotlib>=3.9.0      # docs/solution_chart.{svg,png}: one-chart project/solution summary
+                       # (scripts/render_chart.py); every figure is pulled live from the
+                       # warehouse and asserted against DSF_SPEC.md before rendering
 
 # Intentionally NOT included: polars, pandas, pyarrow, tqdm.
 # DuckDB covers all tabular transforms at this scale (feed-in is ~2.5M rows, trivial
