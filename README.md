@@ -19,6 +19,7 @@ Do not commit or paste credential values into documentation, logs, or submission
 - **CHALLENGE.md** - extracted text from the challenge page for fast processing/indexing
 - **PLAN.md** - current plan to solve/approach the challenge
 - **FINDINGS.md** - append-only ledger of established facts, candidate deviations, and open rules
+- **DSF_SPEC.md** - the deliverable: the 7-field DSF spec + the three identified deviations
 - **plans/DATA_LOADING.md** - implementation spec for authenticated API extraction and immutable raw persistence
 - **plans/STORAGE.md** - implementation spec for the DuckDB store (raw → normalized → reconciliation layers)
 

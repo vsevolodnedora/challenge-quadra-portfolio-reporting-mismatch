@@ -63,7 +63,7 @@ are reproducible by rebuilding: `python scripts/build_warehouse.py`.
 | F-017 | Gross-revenue deltas are entangled with the unpinned settlement rule | signal | **resolved** (F-024) |
 | F-018 | Management-fee amendment time-split rule unpinned | open-question | **resolved** (F-029) |
 | F-019 | EEG-correction allocation base unpinned | open-question | **resolved** (F-014) |
-| F-020 | `availability_pct` definition unknown | open-question | open |
+| F-020 | `availability_pct` definition unknown | open-question | **resolved** (F-030) |
 | F-021 | Report rounding mode not yet replicated | open-question | **resolved** (F-028) |
 | F-022 | Missing-schedule null-rule (settle ID / DA / drop) unpinned | open-question | **resolved** (F-023) |
 | F-023 | Feed-in report rule: validated+estimated (exclude `raw`), truncate inactive at `contract_end` | reconstruction | established |
@@ -73,6 +73,10 @@ are reproducible by rebuilding: `python scripts/build_warehouse.py`.
 | F-027 | `allocated_costs_eur` = Σ source cost rows; pools use the full **847-asset** basis | reconstruction | established |
 | F-028 | The **entire** report reproduces to ±1 cent — deviations are rule-level, not parsing | reconstruction | established |
 | F-029 | **DEVIATION 2** — amendment fee applied whole-month instead of time-split at `amendment_effective` | deviation | **confirmed** |
+| F-030 | `availability_pct` = validated / (validated + estimated) × 100 (raw excluded both sides) | reconstruction | established |
+| F-031 | DEVIATION 3 EUR impact corrected: redistributable **893.74 €** (not 1,827.73); `grid_fees` is `per_asset` and does not redistribute; binary vs pro-rata | refinement | established |
+| F-032 | `db_per_mwh` = round(published_db / published_feedin, 2) — a derived column, not independent; `active_on` probe confirms 835 | reconstruction | established |
+| F-033 | Independent audit pass: extraction/rebuild clean, no hidden ID-settlement trick; D1 within-north-wind asset split is an open assumption (±313.38 €) | audit | established |
 
 ---
 
@@ -216,12 +220,24 @@ are reproducible by rebuilding: `python scripts/build_warehouse.py`.
   `20.56 = 31400 × 500/Σcap_847` (not `/Σcap_835`); monitoring flat `12.50 = 10587.5/847`. The
   12 inactive bear **1,827.73 €** of costs. Cross-refs `assets.status` + `report.portfolio` +
   `costs.active_assets_in_pool` (≥2 sources ✓).
-- **EUR impact:** headline count 847 vs 835; **1,827.73 €** of cost misallocated onto inactive
-  assets (redistributes to the 835 active if corrected). Compounds into `allocated_costs_eur`
-  → `deckungsbeitrag_eur` for every asset.
+- **EUR impact:** headline count 847 vs 835 (zero €-impact on DB — it is a count field). Cost
+  impact **corrected to 893.74 €** (see F-031); the earlier **1,827.73 €** was an over-statement.
+  Compounds into `allocated_costs_eur` → `deckungsbeitrag_eur` for the affected assets, but nets
+  to **0 at portfolio level** (the pools are fixed totals, only redistributed).
 - **Log:**
   - 2026-07-02 — promoted candidate → confirmed. Pinned the 847-basis in the cost math (F-027).
-- **Related:** depends on F-010, F-027; one of the challenge's three hinted deviations.
+  - 2026-07-03 — **corroborated at region granularity.** `report_region.asset_count` also counts
+    inactive: east 187 (183 active), north 280 (274), south 210 (210), west 170 (168) → the 4+6+0+2
+    = 12 inactive are counted as active at both region and portfolio level. Zero €-impact (count
+    field) but broadens the source-vs-report count evidence.
+  - 2026-07-03 — **EUR impact refined (F-031).** The 1,827.73 € was Σ of *all four* cost rows on
+    the 12 inactive, but two of those components do not actually redistribute: `grid_fees` is
+    `per_asset` (bespoke, 934.00 € — each asset's own fee, no ÷count). Only the flat + two
+    capacity-weighted pools redistribute when 847→835: **893.74 €** (binary) or **315.41 €**
+    (pro-rata by active-days). Corrected rule for the spec = binary ÷835 (matches the integer
+    `active_asset_count`/`active_assets_in_pool` semantics). See F-031.
+- **Related:** depends on F-010, F-027; refined by F-031; one of the challenge's three hinted
+  deviations.
 
 ### F-014 — DEVIATION 1: EEG correction spread across all wind, should be north-wind only
 - **Status:** confirmed-deviation
@@ -304,12 +320,16 @@ are reproducible by rebuilding: `python scripts/build_warehouse.py`.
   (`corr(correction, capacity) = −1.0`). The correct base is **north-wind only** — the gap is
   DEVIATION 1 (F-014).
 
-### F-020 — `availability_pct` definition
-- **Status:** open-question
+### F-020 — `availability_pct` definition — RESOLVED
+- **Status:** resolved (see F-030)
 - **Question:** no obvious source field maps to `availability_pct`; derive its definition from
   feed-in vs capacity/expected, validated against report rows. Does **not** feed
   `deckungsbeitrag_eur`, so it is out of the deviation critical path; still worth pinning for a
   complete DSF.
+- **Answer:** it is a **data-quality ratio**, not a capacity/uptime metric:
+  `availability_pct = 100 × validated_quarters / (validated_quarters + estimated_quarters)`
+  (raw excluded from **both** numerator and denominator). **847/847 exact** (F-030). It is *not*
+  a deviation and hides no fourth effect.
 
 ### F-021 — Report rounding mode — RESOLVED
 - **Status:** resolved (see F-028)
@@ -393,6 +413,91 @@ are reproducible by rebuilding: `python scripts/build_warehouse.py`.
 - **Related:** resolves F-018; one of the challenge's three hinted deviations ("fee logic lives
   in contracts").
 
+### F-030 — `availability_pct` = validated / (validated + estimated) × 100
+- **Status:** established
+- **Claim:** the report's `availability_pct` is a **feed-in data-quality ratio**, not a capacity
+  factor or uptime metric: for each asset, `100 × (# quarter-hours flagged `validated`) / (# flagged
+  `validated` + # flagged `estimated`)`. `raw` quarter-hours are excluded from **both** sides;
+  quarter-hours past `contract_end` are excluded (same truncation as F-023).
+- **Evidence:** **847/847 exact** to 2 dp. Competing candidates fail: `validated/total` (incl. raw)
+  0/847 (mean |Δ| 0.48); `(validated+estimated)/total` 0/847 (mean |Δ| 2.51); capacity factor and
+  producing-quarter fraction are ~20–40 %, not the observed 95.79–98.00 % band.
+- **Implication:** the last un-reconstructed report column is now pinned → the whole report is
+  accounted for and **no fourth systematic effect is hiding** in `availability_pct`. It carries
+  **no EUR impact** (does not enter `deckungsbeitrag_eur`), so it is not one of the three
+  deviations; it belongs in the DSF `BUSINESS LOGIC`/`OUTPUT` for completeness. Resolves F-020.
+
+### F-031 — DEVIATION 3 EUR impact corrected: 893.74 €, not 1,827.73 €
+- **Status:** established (refines F-013)
+- **Claim:** the earlier headline "1,827.73 € of cost on the 12 inactive" over-stated the impact by
+  conflating three mechanically different pieces. Decomposed by the cost source's own
+  `allocation_basis`:
+
+  | pool | basis | on 12 inactive (report ÷847) | redistributes 847→835? |
+  | --- | --- | --- | --- |
+  | monitoring | `flat` | 150.00 € | yes (pool/835) |
+  | insurance | `capacity_weighted` | 470.84 € | yes (Σcap over 835) |
+  | data_fees | `capacity_weighted` | 272.90 € | yes (Σcap over 835) |
+  | **subtotal redistributable** | | **893.74 €** | **yes** |
+  | grid_fees | `per_asset` | 934.00 € | **no** — bespoke per-asset fee (4 distinct values, corr(fee,cap)=0.57), not a ÷count; removing an inactive asset moves nothing onto anyone |
+
+  So the true redistributive impact of the 847-vs-835 denominator is **893.74 €** (binary
+  exclusion), verified to the cent as the extra cost loaded onto the 835 active
+  (north +467.99, south +180.31, east +128.10, west +117.34). Under an alternative **pro-rata by
+  active-days** rule the shift is only **315.41 €** (inactive keep 578.33 € for the days they were
+  active). Portfolio total `allocated_costs_eur` is **unchanged** either way (fixed pools).
+- **Corrected rule chosen for the spec:** **binary ÷835.** `active_assets_in_pool` and
+  `active_asset_count` are **integer counts**; their natural corrected value is 835, which is only
+  expressible by binary exclusion (a fractional pro-rata count is not what the field represents),
+  and the challenge frames status as binary active/inactive ("contract ended during January").
+  Pro-rata is recorded as the economically-defensible alternative (315.41 €) so the spec can state
+  the assumption explicitly.
+- **Evidence:** `stg.costs` (basis/pool/`active_assets_in_pool`=847 per category), `stg.assets`
+  (12 inactive), `stg.contracts` (capacity, `contract_end`). Recomputed in
+  `.venv` DuckDB queries 2026-07-03; grid_fees distinct-value + capacity-correlation check confirms
+  `per_asset` is not a divisible pool.
+- **Implication:** DEVIATION 3 stands, but the DSF must quote **893.74 €** (binary), exclude
+  `grid_fees` from the redistribution, and note the pro-rata alternative. Do **not** cite 1,827.73 €.
+
+### F-032 — `db_per_mwh` is a derived column: round(published_db / published_feedin, 2)
+- **Status:** established
+- **Claim:** the report's `db_per_mwh` is **not** an independent computation — it equals
+  `round(deckungsbeitrag_eur / total_feedin_mwh, 2)` using the report's **own already-rounded**
+  published DB and feed-in. Tested three bases: raw ratio → 764/847 exact; round(db,2)/round(feedin,3)
+  → 835/847; **published_db / published_feedin → 847/847 exact.** So it carries no information beyond
+  the two columns it derives from and cannot host a deviation.
+- **Evidence:** the three-way match test above; reconstruction from our rounded DB/feed-in matches
+  835/847 with the other 12 at exactly ±0.01 (last-digit ratio rounding), gated by `recon_db_per_mwh`
+  (tol 0.011) in `sql/04_checks.sql`.
+- **Implication:** closes the gap the audit flagged — `db_per_mwh` (and `availability_pct`, F-030)
+  are now reconstructed and gated, so **all nine** published asset columns are accounted for, not
+  just the DB total. Corrects the earlier over-claim that all nine were "gated" (only DB was).
+
+### F-033 — Independent audit pass; no hidden extraction/settlement trick; one open D1 sub-assumption
+- **Status:** established
+- **Claim:** an independent audit found no evidence the result is an artifact of extraction loss,
+  DB truncation, staging field loss, or a partial build. Reproduced here:
+  - **No hidden ID-settlement trick:** **0** in-contract feed-in hours lack a schedule row, so the
+    `COALESCE(scheduled_mwh,0)` in settlement never fires within contract (no volume silently settled
+    at ID). Contracts are strictly 1:1 with assets (0 multi-contract, 0 orphan).
+  - **Clean rebuild reproduces:** rebuilding the warehouse from raw pages passes all gates and all
+    9 per-column recon checks (only `active_count_vs_inactive` fails = DEVIATION 3, as designed).
+  - **D3 corroborated:** `/data/contracts?active_on` steps 847 (01-01) → 846 (01-09) → 842 (01-15)
+    → 835 (01-31) → 835 (02-01); `/assets?status=active` = 835. Month-end/default active = 835,
+    supporting binary exclusion.
+- **Open sub-assumption (D1):** the within-north-wind **asset-level** correction split is not
+  determined by data. Current spec uses capacity over **all** north wind (incl. the 5 inactive
+  north-wind assets). Excluding inactive would move **≈313.38 €** among north-wind assets **without**
+  changing the region total (−18,400 €). Flagged in `DSF_SPEC.md` step 7; analogous to D3's
+  binary/pro-rata choice. Neither this nor D3's exact rule is resolvable without a "correct" report.
+- **Evidence:** live `active_on` probe; `recon.asset_hour` missing-schedule count = 0; clean rebuild
+  of `data/warehouse.duckdb` and a scratch DB both green.
+- **Process note (self-critical):** the audit fairly observed the exploration order was suboptimal —
+  the first pass bulk-pulled and hunted candidates before pinning trace rules, which produced the
+  since-refuted F-015/F-016 and the over-counted 1,827.73 €. The *final technical path* (raw-first,
+  immutable pages, DuckDB staging, independent reconstruction, clean rebuild) is sound; the lesson
+  is trace-then-bulk, already the documented Phase-0/Phase-1 plan.
+
 ---
 
 ## Changelog
@@ -407,3 +512,21 @@ are reproducible by rebuilding: `python scripts/build_warehouse.py`.
   correction all-wind vs north-only, 6,432.51 €), F-029 (amendment fee whole-month vs
   time-split, +7,019.43 €), F-013 (inactive-as-active: `active_asset_count` 847 vs 835 and
   cost pools ÷847, 1,827.73 €).
+- **2026-07-03** — Pressure-tested DEVIATION 3 and pinned the last column before spec-writing.
+  **F-031:** corrected DEVIATION 3's EUR impact from 1,827.73 € to **893.74 €** (binary ÷835) —
+  `grid_fees` is `per_asset` (934 €, does not redistribute) and pro-rata-by-active-days would be
+  only 315.41 €; portfolio total is unchanged. **F-030:** pinned `availability_pct` =
+  validated/(validated+estimated)×100 (847/847 exact), resolving F-020 and confirming no fourth
+  systematic effect. All nine report columns are now reconstructed; the three deviations hold.
+  **Full cross-validation pass:** extraction complete (manifest 6,811 responses / 1,703 partitions,
+  0 Σrows≠total_records; all 11 raw tables match F-001), all build gates pass, reconstruction max
+  |db_delta| 0.01 € (0 assets > 0.02 tol), amendment cohort confirmed = exactly 2. DEVIATION 3 also
+  corroborated at region granularity (`report_region.asset_count` counts inactive). Nothing
+  overlooked in extraction/storage/reconstruction → cleared to write the DSF spec.
+- **2026-07-03 (audit)** — Independent audit + additional checks. Confirmed clean extraction/rebuild;
+  **fixed three over-statements**: (1) `db_per_mwh`/`availability_pct` were not reconstructed or gated
+  — now both are (F-032, F-030), so all 9 columns are gated per-column in `sql/04_checks.sql`; (2)
+  `sql/03_recon.sql` D3 table rewritten from the stale 1,827.73 € to the decomposed **893.74 €** (binary,
+  grid_fees excluded); (3) `DSF_SPEC.md` intro corrected (7 independent + 2 derived columns, not "9
+  gated"). Added `active_on` corroboration (835) and the D1 within-north-wind open assumption
+  (±313.38 €). No hidden ID-settlement trick (0 in-contract missing-schedule hours). See F-032, F-033.

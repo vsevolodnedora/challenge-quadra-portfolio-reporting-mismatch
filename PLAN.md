@@ -1,24 +1,29 @@
 # Challenge Plan
 
-## Status — 2026-07-02 (Phase 0 + reconstruction complete)
+## Status — 2026-07-03 (COMPLETE — spec written, pending manual submission)
 
-The reconstruction is done and the report reproduces to ±1 cent for all 847 assets
-(`recon.asset_delta`, gated in `sql/04_checks.sql`). The three deviations are confirmed,
-quantified in SQL (`recon.deviation_1_eeg`, `_2_fee`, `_3_inactive`) and root-caused in
-`FINDINGS.md` (F-013, F-014, F-029):
+The reconstruction is done and the report reproduces to ±0.01 € for all 847 assets
+(`recon.asset_delta`, gated in `sql/04_checks.sql`). All nine report columns are pinned
+(incl. `availability_pct`, F-030), a full cross-validation pass confirmed extraction
+completeness and reconstruction fidelity, and the deliverable — the 7-field DSF spec + three
+deviations — is written in **`DSF_SPEC.md`**. The three confirmed deviations
+(`recon.deviation_1_eeg`, `_2_fee`, `_3_inactive`; `FINDINGS.md` F-014, F-029, F-013/F-031):
 
 1. **EEG correction** spread capacity-weighted across **all wind**; the `costs/metadata` note
    restricts it to **north wind only** → **6,432.51 €** shifted off north (F-014).
 2. **Amendment management fee** applied the new fee model to the **whole month** instead of
    time-splitting at `amendment_effective` → net **+7,019.43 €** over-charged (F-029).
-3. **Inactive-as-active**: `active_asset_count=847` (truth 835) and all cost pools divide by
-   847, so 12 inactive assets absorb **1,827.73 €** of costs (F-013).
+3. **Inactive-as-active**: `active_asset_count=847` (truth 835) and the flat + capacity-weighted
+   cost pools divide by 847 → **893.74 €** of pooled cost misallocated onto the 12 inactive
+   (F-013; corrected from the earlier 1,827.73 € in F-031 — `grid_fees` is `per_asset` and does
+   not redistribute; pro-rata alternative = 315.41 €).
 
-Pinned rules (F-023…F-028): feed-in excludes `raw` and truncates inactive at `contract_end`;
-`gross_revenue = energy settlement + eeg_premium`; fee base includes the premium; rounding is
-half-up at output. Two earlier candidates were **refuted** (F-015 inactive feed-in, F-016
-validated-only) — the report was correct on both. **Remaining:** write the 7-field DSF spec;
-optionally pin `availability_pct` (F-020, not on the DB critical path).
+Pinned rules (F-023…F-030): feed-in excludes `raw` and truncates inactive at `contract_end`;
+`gross_revenue = energy settlement + eeg_premium`; fee base includes the premium; costs = Σ four
+source rows; `availability_pct = validated/(validated+estimated)×100`; rounding is half-up at
+output. Two earlier candidates were **refuted** (F-015 inactive feed-in, F-016 validated-only) —
+the report was correct on both. **Remaining:** review `DSF_SPEC.md`; manual submission (max 3
+tries, human-reviewed) — not automated.
 
 ## Core Assertion
 

@@ -78,6 +78,15 @@ fee AS (  -- report rule: amended contracts get the NEW model applied to the who
 costs AS (
   SELECT asset_id, SUM(allocated_amount_eur) AS allocated_costs_eur FROM stg.costs GROUP BY 1
 ),
+avail AS (  -- availability_pct = validated / (validated+estimated) × 100 (raw excluded both sides, F-030)
+  SELECT f.asset_id,
+         100.0 * COUNT(*) FILTER (WHERE f.quality_flag = 'validated')
+               / NULLIF(COUNT(*) FILTER (WHERE f.quality_flag IN ('validated','estimated')), 0)
+           AS availability_pct
+  FROM stg.feedin_qh f JOIN stg.contracts c USING (asset_id)
+  WHERE f.date <= c.contract_end
+  GROUP BY 1
+),
 wind_cap AS (  -- report's EEG-correction basis: capacity-weighted over all wind
   SELECT SUM(c.installed_capacity_kw) AS cap
   FROM stg.contracts c WHERE c.technology = 'wind'
@@ -98,13 +107,15 @@ SELECT f.asset_id,
        fee.management_fee_eur,
        costs.allocated_costs_eur,
        g.gross_revenue_eur + corr.eeg_correction_eur
-         - fee.management_fee_eur - costs.allocated_costs_eur AS deckungsbeitrag_eur
+         - fee.management_fee_eur - costs.allocated_costs_eur AS deckungsbeitrag_eur,
+       av.availability_pct
 FROM fed f
 JOIN gross  g    USING (asset_id)
 JOIN prem   pr   USING (asset_id)
 JOIN corr        USING (asset_id)
 JOIN fee         USING (asset_id)
-JOIN costs       USING (asset_id);
+JOIN costs       USING (asset_id)
+JOIN avail  av   USING (asset_id);
 
 -- Delta vs the published report — the reproduction proof (all columns ≈ 0 → F-028).
 CREATE OR REPLACE TABLE recon.asset_delta AS
@@ -115,7 +126,13 @@ SELECT a.asset_id,
        round_eur(a.eeg_correction_eur) - r.eeg_correction_eur AS correction_delta,
        round_eur(a.management_fee_eur) - r.management_fee_eur AS fee_delta,
        round_eur(a.allocated_costs_eur)- r.allocated_costs_eur AS costs_delta,
-       round_eur(a.deckungsbeitrag_eur)- r.deckungsbeitrag_eur AS db_delta
+       round_eur(a.deckungsbeitrag_eur)- r.deckungsbeitrag_eur AS db_delta,
+       -- db_per_mwh is a derived display column: the report publishes round(db/feedin,2) from its
+       -- OWN rounded db & feedin (F-032). Reconstruct it the same way from our rounded values;
+       -- ~12 assets land on the 0.01 boundary (ratio last-digit), never above.
+       round(round_eur(a.deckungsbeitrag_eur) / NULLIF(round_mwh(a.total_feedin_mwh),0), 2)
+         - r.db_per_mwh                                       AS dbpm_delta,
+       round_rate(a.availability_pct)  - r.availability_pct   AS avail_delta
 FROM recon.asset a JOIN stg.report_asset r USING (asset_id);
 
 -- ---------------------------------------------------------------------------------------------
@@ -171,14 +188,41 @@ SELECT s.asset_id, s.eff, s.fixed_rate, s.new_pct,
 FROM split s JOIN stg.report_asset r USING (asset_id) ORDER BY asset_id;
 
 -- ---------------------------------------------------------------------------------------------
--- DEVIATION 3 (F-013) — 12 assets ended contracts in Jan (status=inactive) yet the report treats
--- 847 as active: active_asset_count=847 (vs 835) and every cost pool divides by 847, so the 12
--- inactive absorb cost that should fall on the active 835.
+-- DEVIATION 3 (F-013, F-031) — 12 assets ended contracts in Jan (status=inactive) yet the report
+-- treats 847 as active: active_asset_count=847 (vs 835), region asset_count also counts inactive,
+-- and the flat + capacity-weighted cost pools divide by 847.
+--
+-- The EUR impact must be decomposed by allocation_basis — NOT every cost on an inactive asset
+-- redistributes:
+--   * flat (monitoring) + capacity_weighted (insurance, data_fees) DO redistribute when 847->835
+--     => 893.74 EUR shifts off the 12 inactive onto the 835 active (the deviation's true impact).
+--   * per_asset (grid_fees) is a bespoke per-asset fee (4 distinct values, corr(fee,cap)=0.57);
+--     it is NOT a pool/count, so removing an inactive asset moves nothing => excluded (934.00 EUR).
+-- Chosen corrected rule = BINARY /835 (matches the integer active_asset_count semantics; a live
+-- /data/contracts?active_on=2025-01-31 probe also returns 835). Pro-rata-by-active-days is the
+-- economically-defensible alternative and shifts only 315.41 EUR (inactive keep 578.33 EUR).
 -- ---------------------------------------------------------------------------------------------
 CREATE OR REPLACE TABLE recon.deviation_3_inactive AS
-SELECT (SELECT active_asset_count FROM stg.report_portfolio)                  AS report_active_count,
-       (SELECT COUNT(*) FROM stg.assets WHERE status='active')               AS correct_active_count,
-       (SELECT COUNT(*) FROM stg.assets WHERE status='inactive')             AS inactive_count,
-       round_eur((SELECT SUM(cc.allocated_amount_eur)
-                  FROM stg.costs cc JOIN stg.assets a USING (asset_id)
-                  WHERE a.status='inactive'))                                AS costs_on_inactive_eur;
+WITH caps AS (
+  SELECT SUM(c.installed_capacity_kw)                                  AS cap_all,     -- 763,600
+         SUM(c.installed_capacity_kw) FILTER (WHERE a.status='active') AS cap_active   -- 752,150
+  FROM stg.contracts c JOIN stg.assets a USING (asset_id)
+),
+inact AS (
+  SELECT COUNT(*) AS n, SUM(c.installed_capacity_kw) AS cap
+  FROM stg.contracts c JOIN stg.assets a USING (asset_id) WHERE a.status='inactive'
+)
+SELECT (SELECT active_asset_count FROM stg.report_portfolio)                   AS report_active_count,   -- 847
+       (SELECT COUNT(*) FROM stg.assets WHERE status='active')                 AS correct_active_count,  -- 835
+       (SELECT COUNT(*) FROM stg.assets WHERE status='inactive')               AS inactive_count,        -- 12
+       round_eur((SELECT n FROM inact) * 10587.5/847.0)                        AS monitoring_flat_shift, -- 150.00
+       round_eur(31400.0 * (SELECT cap FROM inact)/(SELECT cap_all FROM caps)) AS insurance_cap_shift,   -- 470.84
+       round_eur(18200.0 * (SELECT cap FROM inact)/(SELECT cap_all FROM caps)) AS data_fees_cap_shift,   -- 272.90
+       round_eur((SELECT n FROM inact)*10587.5/847.0
+                 + (31400.0+18200.0)*(SELECT cap FROM inact)/(SELECT cap_all FROM caps))
+                                                                               AS redistributable_eur,   -- 893.74 (binary)
+       round_eur((SELECT SUM(cc.allocated_amount_eur) FROM stg.costs cc JOIN stg.assets a USING (asset_id)
+                  WHERE a.status='inactive' AND cc.cost_category='grid_fees'))
+                                                                               AS grid_fees_no_redist,   -- 934.00 (per_asset, excluded)
+       round_eur((SELECT SUM(cc.allocated_amount_eur) FROM stg.costs cc JOIN stg.assets a USING (asset_id)
+                  WHERE a.status='inactive'))                                  AS all_categories_stale;  -- 1,827.73 (superseded)

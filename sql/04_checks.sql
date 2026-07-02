@@ -110,4 +110,39 @@ SELECT * FROM (
          CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(db_delta) > 0.02) AS VARCHAR),
          (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(db_delta) > 0.02),
          'assets where reconstructed deckungsbeitrag != report (tol 0.02)'
+  -- Per-column reconstruction fidelity (F-028): every published asset column must be reproduced,
+  -- not just the DB total. EUR columns tol 0.02; feed-in 0.0011 MWh; availability 0.005;
+  -- db_per_mwh is a derived ratio (F-032) so it lands at most 0.01 off (tol 0.011).
+  UNION ALL SELECT 'recon_feedin','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(feedin_delta) > 0.0011) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(feedin_delta) > 0.0011),
+         'assets where reconstructed total_feedin_mwh != report (tol 0.0011)'
+  UNION ALL SELECT 'recon_gross','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(gross_delta) > 0.02) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(gross_delta) > 0.02),
+         'assets where reconstructed gross_revenue_eur != report (tol 0.02)'
+  UNION ALL SELECT 'recon_premium','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(premium_delta) > 0.02) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(premium_delta) > 0.02),
+         'assets where reconstructed eeg_premium_eur != report (tol 0.02)'
+  UNION ALL SELECT 'recon_correction','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(correction_delta) > 0.02) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(correction_delta) > 0.02),
+         'assets where reconstructed eeg_correction_eur (report basis) != report (tol 0.02)'
+  UNION ALL SELECT 'recon_fee','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(fee_delta) > 0.02) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(fee_delta) > 0.02),
+         'assets where reconstructed management_fee_eur (report basis) != report (tol 0.02)'
+  UNION ALL SELECT 'recon_costs','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(costs_delta) > 0.02) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(costs_delta) > 0.02),
+         'assets where reconstructed allocated_costs_eur != report (tol 0.02)'
+  UNION ALL SELECT 'recon_db_per_mwh','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(dbpm_delta) > 0.011) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(dbpm_delta) > 0.011),
+         'assets where reconstructed db_per_mwh != report (derived ratio, tol 0.011)'
+  UNION ALL SELECT 'recon_availability','observe',
+         CAST((SELECT count(*) FROM recon.asset_delta WHERE abs(avail_delta) > 0.005) AS VARCHAR),
+         (SELECT count(*) = 0 FROM recon.asset_delta WHERE abs(avail_delta) > 0.005),
+         'assets where reconstructed availability_pct != report (tol 0.005)'
 ) t;
